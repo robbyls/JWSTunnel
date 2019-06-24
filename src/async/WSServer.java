@@ -29,7 +29,7 @@ public class WSServer
 {
 public static void main(String[] args) throws Exception
 {
-    Server server = new Server("0.0.0.0", 80, "/", null, MyApplicationConfig.class);
+    Server server = new Server("0.0.0.0", 8080, "/", null, MyApplicationConfig.class);
 	
     try {
         server.start();

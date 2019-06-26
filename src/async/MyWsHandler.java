@@ -2,35 +2,22 @@
 
 package async;
 
-import bayou.http.*;
-import bayou.websocket.*;
-import bayou.async.*;
-import java.time.Duration;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.nio.charset.Charset;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.concurrent.Future;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.util.concurrent.ExecutionException;
-import java.net.InetSocketAddress;
-import java.nio.channels.CompletionHandler;
-import java.util.Arrays;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
+import javax.websocket.MessageHandler;
+import javax.websocket.Session;
 import java.io.ByteArrayOutputStream;
-import javax.xml.bind.DatatypeConverter;
-import java.security.*;
-import org.glassfish.tyrus.server.Server;
-import javax.websocket.*;
-import javax.websocket.server.*;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
+import java.util.HashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.*;
 
 public class MyWsHandler extends Endpoint
 {
 
-	 //AsynchronousSocketChannel client = null;
-     //InetSocketAddress hostAddress = new InetSocketAddress("localhost", 22);
 	 boolean init = false;
 	 long i =0;
 	 int counter =0;
@@ -38,15 +25,7 @@ public class MyWsHandler extends Endpoint
 	 ReentrantLock lock = new ReentrantLock();
 	 HashMap<String,AsynchronousSocketChannel> map = new HashMap<String,AsynchronousSocketChannel>();
 	 
-   /* @Override
-    public Async<WebSocketResponse> handle(WebSocketRequest request)
-    {
-        // note: same-origin has already been enforced (default configuration)        
-			init = true;			
-			i=0;
-			System.out.println("Got WebSocket Request");
-            return WebSocketResponse.accept( this::handleChannel );
-    }*/
+
 	
 	class Attach {
 		public AsynchronousSocketChannel client;
@@ -58,15 +37,10 @@ public class MyWsHandler extends Endpoint
 	Attach attach = new Attach();
 	attach.client = client;
 	attach.channel = channel;
-	// callback 2
-	//System.out.println("Waiting for Client");
+
 							client.read(buffer, attach, new CompletionHandler<Integer, Attach>() {
 								@Override
 								public void completed(Integer result, final Attach scAttachment) {	
-									//System.out.println("Reading from server completed");
-									//System.out.println("Result for Read: " + result);
-									//System.out.println("Has Remaining " + buffer.remaining());
-									//System.out.println("Buffer Limit " + buffer.limit());
 									counter++;
 									buffer.clear();
 										try {					
@@ -76,22 +50,12 @@ public class MyWsHandler extends Endpoint
 												byte arr[] = new byte[result];	
 												ByteBuffer b = buffer.get(arr,0,result);												
 												baos.write(arr,0,result);												
-												//scAttachment.writeBinary(baos.toByteArray());
-												ByteBuffer q = ByteBuffer.wrap(baos.toByteArray());		
-												/*if(counter>5)
-												{
-													Thread.sleep(1000);
-													counter = 0;
-												}*/
+												ByteBuffer q = ByteBuffer.wrap(baos.toByteArray());
 												scAttachment.channel.getBasicRemote().sendBinary(q);
 												System.out.println("Sent " + baos.size());
 												String message = new String(buffer.array()).trim();		
-												//System.out.println(new String(baos.toByteArray()));
-												//System.out.println("HASH : " + DatatypeConverter.printHexBinary(MessageDigest.getInstance("MD5").digest(baos.toByteArray())));
-												baos = new ByteArrayOutputStream();						
-												//System.out.println("Client is connected: " + client.isOpen());			
+												baos = new ByteArrayOutputStream();
 												readFromServer(scAttachment.channel,scAttachment.client);
-												//client.read(buffer, scAttachment, this);
 											}else{
 												if(result > 0)
 												{
@@ -100,17 +64,11 @@ public class MyWsHandler extends Endpoint
 													baos.write(arr,0,result);				
 													readFromServer(scAttachment.channel,scAttachment.client);
 												}
-												
-												//client.read(buffer, scAttachment, this);
 											}
 											} catch (Exception e) {
 												e.printStackTrace();
 											}																										
 
-									
-									//byte [] message1 = new String("OVER").getBytes();
-									//buffer.wrap(message1);
-																									
 								}
 								@Override
 								public void failed(Throwable t, Attach scAttachment) {
@@ -130,8 +88,6 @@ public class MyWsHandler extends Endpoint
 											try{
 											//System.out.println("HASH : " + DatatypeConverter.printHexBinary(MessageDigest.getInstance("MD5").digest(attach.array())));
 											}catch(Exception e){}
-											//System.out.println("Sent to Server " + result);											
-											//readFromServer(channel);
 										}
 										
 										@Override
@@ -147,7 +103,6 @@ public class MyWsHandler extends Endpoint
 		try{
 			if(i>1)
 			{
-				//System.out.println("DATA FROM WS " +new String(z.array()).trim());
 				AsynchronousSocketChannel client = (AsynchronousSocketChannel) map.get(channel.getId());
 				writeToServer(z,channel,client);										
 			}
@@ -164,18 +119,7 @@ public class MyWsHandler extends Endpoint
 				System.out.println("Client is started: " + client.isOpen());
 				map.put(channel.getId(), client);
 				init=false;
-				//writeToServer(z,channel);
 				readFromServer(channel,client);
-				/*ByteBuffer buffer = ByteBuffer.allocate(5000); 
-				System.out.println("BEFORE READ");
-				int result = client.read(buffer).get();
-				buffer.clear();
-				byte arr[] = new byte[result];
-				ByteBuffer b = buffer.get(arr,0,result);
-				System.out.println("READ FROM SERVER " + (buffer.capacity() - buffer.remaining()));				
-				//channel.writeBinary(b.array());
-				 channel.getBasicRemote().sendBinary(b);
-				//handleChannel(channel);*/
 			}
 			}catch(Exception e){
 				e.printStackTrace();
@@ -195,12 +139,7 @@ public class MyWsHandler extends Endpoint
 					message.clear();
 					i++;
 					System.out.println("Packet # " + i + " for Session " + session.getId() );
-					//System.out.println("READ FROM WS " + message.capacity());
-					process(message,session);					
-					/*for(int i=0;i<=100;i++)
-					{
-						session.getBasicRemote().sendText("MSG IS " + String.valueOf(i));
-					}*/
+					process(message,session);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

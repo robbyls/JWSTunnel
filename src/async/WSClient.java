@@ -256,14 +256,18 @@ public class WSClient {
 
                 // callback 1
                 listener.accept(new AsynCon(), new CompletionHandler<AsynchronousSocketChannel, AsynCon>() {
+
                     @Override
                     public void completed(AsynchronousSocketChannel connection, AsynCon v) {
+
                         System.out.println(connection);
                         WSClient wsc = new WSClient();
+
                         final ByteBuffer buffer = ByteBuffer.allocate(32);
                         System.out.println("Client connected...");
                         v.channel = connection;
                         v.buffer = buffer;
+
                         listener.accept(new AsynCon(), this); // get ready for next connection
                         try {
                             WebSocketFactory factory = new WebSocketFactory();
@@ -272,7 +276,9 @@ public class WSClient {
                             if (prop.getProperty("ProxyHost") != null) {
                                 settings.setHost(prop.getProperty("ProxyHost"));
                                 settings.setPort(Integer.parseInt(prop.getProperty("ProxyPort")));
-                                settings.setCredentials(prop.getProperty("ProxyUser"), decrypt(prop.getProperty("ProxyPassword"), prop.getProperty("EncryptionKey")));
+
+                                if (prop.getProperty("ProxyUser") != null)
+                                    settings.setCredentials(prop.getProperty("ProxyUser"), decrypt(prop.getProperty("ProxyPassword"), prop.getProperty("EncryptionKey")));
                             }
 
                             //ws://ec2-34-195-77-61.compute-1.amazonaws.com
@@ -280,6 +286,7 @@ public class WSClient {
                             int delay = Integer.parseInt(prop.getProperty("ThreadDelay"));
 
                             ws.addListener(new WebSocketAdapter() {
+
                                 @Override
                                 public void onTextMessage(WebSocket websocket, String message) throws Exception {
                                     System.out.println("TXT MSG " + message);
